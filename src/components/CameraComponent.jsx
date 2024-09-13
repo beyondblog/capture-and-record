@@ -82,19 +82,14 @@ const CameraComponent = ({ setPhoto }) => {
     }
   };
 
-  const getButtonText = () => {
-    if (!isCapturing) return "开始拍照";
-    return "拍照";
-  };
-
   return (
-    <>
+    <div className="space-y-4">
       <Button 
         className="w-full" 
         onClick={takePhoto}
       >
         <Camera className="mr-2 h-4 w-4" />
-        {getButtonText()}
+        {isCapturing ? "拍照" : "开始拍照"}
       </Button>
 
       {isCapturing && (
@@ -104,7 +99,7 @@ const CameraComponent = ({ setPhoto }) => {
           playsInline
         />
       )}
-    </>
+    </div>
   );
 };
 

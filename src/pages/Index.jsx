@@ -1,7 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Camera, Mic } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import React, { useState } from 'react';
 import CameraComponent from '../components/CameraComponent';
 import AudioRecorder from '../components/AudioRecorder';
 
