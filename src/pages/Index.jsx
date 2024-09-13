@@ -5,28 +5,49 @@ import { toast } from "sonner";
 
 const Index = () => {
   const [photo, setPhoto] = useState(null);
+  const [isCapturing, setIsCapturing] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const videoRef = useRef(null);
   const mediaRecorderRef = useRef(null);
+  const streamRef = useRef(null);
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      videoRef.current.srcObject = stream;
-      videoRef.current.play();
-    } catch (err) {
-      toast.error("无法访问摄像头");
+  const toggleCamera = async () => {
+    if (isCapturing) {
+      // Stop capturing
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      setIsCapturing(false);
+      toast.success("摄像头已关闭");
+    } else {
+      // Start capturing
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoRef.current.srcObject = stream;
+        streamRef.current = stream;
+        videoRef.current.play();
+        setIsCapturing(true);
+        setPhoto(null);
+        toast.success("摄像头已开启");
+      } catch (err) {
+        toast.error("无法访问摄像头");
+      }
     }
   };
 
   const takePhoto = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
-    const photoDataUrl = canvas.toDataURL('image/jpeg');
-    setPhoto(photoDataUrl);
-    toast.success("照片已拍摄");
+    if (isCapturing) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
+      const photoDataUrl = canvas.toDataURL('image/jpeg');
+      setPhoto(photoDataUrl);
+      toggleCamera(); // Stop capturing after taking photo
+      toast.success("照片已拍摄");
+    } else {
+      toggleCamera(); // Start capturing if not already
+    }
   };
 
   const toggleRecording = async () => {
@@ -60,13 +81,13 @@ const Index = () => {
       <div className="space-y-4 w-full max-w-md">
         <Button 
           className="w-full" 
-          onClick={photo ? takePhoto : startCamera}
+          onClick={takePhoto}
         >
           <Camera className="mr-2 h-4 w-4" />
-          {photo ? "重新拍照" : "拍照"}
+          {isCapturing ? "拍照" : (photo ? "重新拍照" : "开始拍照")}
         </Button>
 
-        {!photo && (
+        {isCapturing && (
           <video 
             ref={videoRef} 
             className="w-full h-64 bg-black object-cover rounded-lg"
@@ -74,7 +95,7 @@ const Index = () => {
           />
         )}
 
-        {photo && (
+        {photo && !isCapturing && (
           <img 
             src={photo} 
             alt="拍摄的照片" 
