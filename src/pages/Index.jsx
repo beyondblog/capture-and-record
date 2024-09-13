@@ -13,44 +13,49 @@ const Index = () => {
 
   useEffect(() => {
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
+      stopMediaStream();
     };
   }, []);
 
+  const stopMediaStream = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+  };
+
   const requestCameraPermission = async () => {
     try {
-      await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      streamRef.current = stream;
       return true;
     } catch (err) {
-      if (err.name === 'NotAllowedError') {
-        toast.error("摄像头权限被拒绝。请在浏览器设置中允许访问摄像头。");
-      } else if (err.name === 'NotFoundError') {
-        toast.error("未检测到摄像头设备。请确保设备已连接。");
-      } else {
-        toast.error(`无法访问摄像头: ${err.message}`);
-      }
-      console.error('Camera permission error:', err);
+      handleCameraError(err);
       return false;
     }
   };
 
+  const handleCameraError = (err) => {
+    if (err.name === 'NotAllowedError') {
+      toast.error("摄像头权限被拒绝。请在浏览器设置中允许访问摄像头。");
+    } else if (err.name === 'NotFoundError') {
+      toast.error("未检测到摄像头设备。请确保设备已连接。");
+    } else {
+      toast.error(`无法访问摄像头: ${err.message}`);
+    }
+    console.error('Camera error:', err);
+  };
+
   const toggleCamera = async () => {
     if (isCapturing) {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
+      stopMediaStream();
       setIsCapturing(false);
       toast.success("摄像头已关闭");
     } else {
       const hasPermission = await requestCameraPermission();
       if (hasPermission) {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          streamRef.current = stream;
           if (videoRef.current) {
-            videoRef.current.srcObject = stream;
+            videoRef.current.srcObject = streamRef.current;
             await videoRef.current.play();
             setIsCapturing(true);
             setPhoto(null);
@@ -74,7 +79,8 @@ const Index = () => {
       canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
       const photoDataUrl = canvas.toDataURL('image/jpeg');
       setPhoto(photoDataUrl);
-      toggleCamera();
+      stopMediaStream();
+      setIsCapturing(false);
       toast.success("照片已拍摄");
     } else {
       toggleCamera();
