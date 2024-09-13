@@ -11,26 +11,43 @@ const Index = () => {
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
 
+  const requestCameraPermission = async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ video: true });
+      return true;
+    } catch (err) {
+      if (err.name === 'NotAllowedError') {
+        toast.error("摄像头权限被拒绝。请在浏览器设置中允许访问摄像头。");
+      } else if (err.name === 'NotFoundError') {
+        toast.error("未检测到摄像头设备。请确保设备已连接。");
+      } else {
+        toast.error(`无法访问摄像头: ${err.message}`);
+      }
+      return false;
+    }
+  };
+
   const toggleCamera = async () => {
     if (isCapturing) {
-      // Stop capturing
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
       setIsCapturing(false);
       toast.success("摄像头已关闭");
     } else {
-      // Start capturing
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        videoRef.current.srcObject = stream;
-        streamRef.current = stream;
-        videoRef.current.play();
-        setIsCapturing(true);
-        setPhoto(null);
-        toast.success("摄像头已开启");
-      } catch (err) {
-        toast.error("无法访问摄像头");
+      const hasPermission = await requestCameraPermission();
+      if (hasPermission) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          videoRef.current.srcObject = stream;
+          streamRef.current = stream;
+          videoRef.current.play();
+          setIsCapturing(true);
+          setPhoto(null);
+          toast.success("摄像头已开启");
+        } catch (err) {
+          toast.error(`启动摄像头失败: ${err.message}`);
+        }
       }
     }
   };
@@ -43,10 +60,10 @@ const Index = () => {
       canvas.getContext('2d').drawImage(videoRef.current, 0, 0);
       const photoDataUrl = canvas.toDataURL('image/jpeg');
       setPhoto(photoDataUrl);
-      toggleCamera(); // Stop capturing after taking photo
+      toggleCamera();
       toast.success("照片已拍摄");
     } else {
-      toggleCamera(); // Start capturing if not already
+      toggleCamera();
     }
   };
 
@@ -69,7 +86,11 @@ const Index = () => {
           audio.play();
         };
       } catch (err) {
-        toast.error("无法访问麦克风");
+        if (err.name === 'NotAllowedError') {
+          toast.error("麦克风权限被拒绝。请在浏览器设置中允许访问麦克风。");
+        } else {
+          toast.error(`无法访问麦克风: ${err.message}`);
+        }
       }
     }
   };
