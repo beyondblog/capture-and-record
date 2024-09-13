@@ -20,6 +20,10 @@ const Index = () => {
   };
 
   const takePhoto = () => {
+    if (!videoRef.current.srcObject) {
+      startCamera();
+      return;
+    }
     const canvas = document.createElement('canvas');
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
@@ -60,19 +64,17 @@ const Index = () => {
       <div className="space-y-4 w-full max-w-md">
         <Button 
           className="w-full" 
-          onClick={photo ? takePhoto : startCamera}
+          onClick={takePhoto}
         >
           <Camera className="mr-2 h-4 w-4" />
           {photo ? "重新拍照" : "拍照"}
         </Button>
 
-        {!photo && (
-          <video 
-            ref={videoRef} 
-            className="w-full h-64 bg-black object-cover rounded-lg"
-            playsInline
-          />
-        )}
+        <video 
+          ref={videoRef} 
+          className="w-full h-64 bg-black object-cover rounded-lg"
+          playsInline
+        />
 
         {photo && (
           <img 
