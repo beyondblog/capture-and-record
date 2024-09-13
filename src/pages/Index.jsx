@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Mic } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -10,6 +10,14 @@ const Index = () => {
   const videoRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
 
   const requestCameraPermission = async () => {
     try {
@@ -23,6 +31,7 @@ const Index = () => {
       } else {
         toast.error(`无法访问摄像头: ${err.message}`);
       }
+      console.error('Camera permission error:', err);
       return false;
     }
   };
@@ -39,13 +48,18 @@ const Index = () => {
       if (hasPermission) {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          videoRef.current.srcObject = stream;
           streamRef.current = stream;
-          videoRef.current.play();
-          setIsCapturing(true);
-          setPhoto(null);
-          toast.success("摄像头已开启");
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            await videoRef.current.play();
+            setIsCapturing(true);
+            setPhoto(null);
+            toast.success("摄像头已开启");
+          } else {
+            throw new Error('Video element not found');
+          }
         } catch (err) {
+          console.error('Camera start error:', err);
           toast.error(`启动摄像头失败: ${err.message}`);
         }
       }
@@ -53,7 +67,7 @@ const Index = () => {
   };
 
   const takePhoto = () => {
-    if (isCapturing) {
+    if (isCapturing && videoRef.current) {
       const canvas = document.createElement('canvas');
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
@@ -91,8 +105,15 @@ const Index = () => {
         } else {
           toast.error(`无法访问麦克风: ${err.message}`);
         }
+        console.error('Microphone access error:', err);
       }
     }
+  };
+
+  const getButtonText = () => {
+    if (!isCapturing && !photo) return "开始拍照";
+    if (isCapturing) return "拍照";
+    return "重新拍照";
   };
 
   return (
@@ -105,7 +126,7 @@ const Index = () => {
           onClick={takePhoto}
         >
           <Camera className="mr-2 h-4 w-4" />
-          {isCapturing ? "拍照" : (photo ? "重新拍照" : "开始拍照")}
+          {getButtonText()}
         </Button>
 
         {isCapturing && (
